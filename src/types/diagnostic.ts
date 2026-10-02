@@ -61,6 +61,7 @@ export interface Flow extends FlowMeta {
 }
 export interface Evidence {
   nodeId: string;
+  answerId?: string;
   title: Text;
   answer: Text;
   detail?: string;

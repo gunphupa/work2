@@ -19,6 +19,26 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
   const partial = session.outcome === 'partially_solved';
   const unsafe = session.stopReason === 'safety';
   const worse = session.stopReason === 'worse';
+  const findings = session.causes.filter((cause) => cause.evidence.length > 0);
+  const hasLead = findings.some((cause) => ['likely', 'very_likely'].includes(cause.status));
+  const lastCheck = session.history.at(-1);
+  const lastIncomplete =
+    lastCheck?.answerId === 'unsure' ||
+    lastCheck?.answerId === 'other' ||
+    (session.fixes.at(-1)?.fixId === lastCheck?.nodeId &&
+      session.fixes.at(-1)?.result === 'could_not_complete');
+  const unresolvedBody =
+    session.stopReason === 'ended'
+      ? m.endedBody
+      : session.stopReason === 'invalid'
+        ? m.error
+        : lastIncomplete
+          ? m.incompleteBody
+          : hasLead
+            ? m.unresolvedLeadBody
+            : session.fixes.some((fix) => fix.result === 'no_change')
+              ? m.failedFixesBody
+              : m.unresolvedBody;
   const latestFix = flow.nodes.find((n) => n.id === session.fixes.at(-1)?.fixId);
   const workedFix = flow.nodes.find(
     (n) =>
@@ -33,6 +53,7 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
       recentChange: session.change,
       reportedContext: session.context,
       outcome: session.outcome,
+      stopReason: session.stopReason,
       durationSeconds: Math.round(
         ((session.endedAt ?? session.startedAt) - session.startedAt) / 1000,
       ),
@@ -81,18 +102,22 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
                   ? m.solved
                   : partial
                     ? m.partial
-                    : m.unresolved,
+                    : hasLead && session.stopReason === 'exhausted'
+                      ? m.unresolvedLead
+                      : m.unresolved,
           )}
         </h1>
         <p className="completion-body">
           {tx(
             unsafe
               ? m.unsafeBody
-              : solved
-                ? m.solvedBody
-                : partial
-                  ? m.partialBody
-                  : m.unresolvedBody,
+              : worse
+                ? m.worseBody
+                : solved
+                  ? m.solvedBody
+                  : partial
+                    ? m.partialBody
+                    : unresolvedBody,
           )}
         </p>
         {worse && latestFix?.kind === 'fix' && (
@@ -101,7 +126,6 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
             <p>{tx(latestFix.undo)}</p>
           </div>
         )}
-        {session.stopReason === 'invalid' && <p className="warning-message">{tx(m.error)}</p>}
         {workedFix?.kind === 'fix' && !unsafe && !worse && (
           <div className="worked-fix">
             <Check size={20} />
@@ -127,6 +151,43 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
             <span>{tx(m.duration)}</span>
           </div>
         </div>
+        {!solved && lastCheck && (
+          <section className="completion-findings">
+            <h2>{tx(m.lastCheck)}</h2>
+            <p>
+              <strong>{tx(lastCheck.title)}</strong>
+            </p>
+            <p>
+              {tx(lastCheck.answer)}
+              {lastCheck.detail && ` · ${lastCheck.detail}`}
+            </p>
+          </section>
+        )}
+        {findings.length > 0 && (
+          <section className="completion-findings" aria-label={tx(m.findings)}>
+            <h2>{tx(m.findings)}</h2>
+            <p className="field-hint">{tx(m.findingsHint)}</p>
+            <ul className="cause-list">
+              {findings.map((cause) => {
+                const observation = cause.evidence.at(-1)!;
+                return (
+                  <li key={cause.id}>
+                    <div>
+                      <strong>
+                        {tx(flow.causes.find((definition) => definition.id === cause.id)!.title)}
+                      </strong>
+                      <small className={cause.status}>{tx(m.statuses[cause.status])}</small>
+                      <p>
+                        {tx(observation.title)}: {tx(observation.answer)}
+                        {observation.detail && ` · ${observation.detail}`}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
         <EvidenceList session={session} />
         {!solved && (
           <div className="support-box">

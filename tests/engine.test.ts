@@ -106,6 +106,7 @@ describe('microphone investigation', () => {
     expect(answerQuestion(flow, start, 'unsure').causes).toEqual(start.causes);
     expect(() => answerQuestion(flow, start, 'other')).toThrow();
     const other = answerQuestion(flow, start, 'other', 'It appears briefly then disappears');
+    expect(other.history[0].answerId).toBe('other');
     expect(other.history[0].detail).toContain('briefly');
     expect(other.current).toBe('connection');
     expect(() => answerQuestion(flow, start, 'invented-answer')).toThrow();
@@ -154,4 +155,64 @@ it('a restored Wi-Fi connection does not invent the original cause', () => {
   const completed = verifyFix(flow, session, 'fixed');
   expect(completed.outcome).toBe('solved');
   expect(completed.causes.find((c) => c.id === 'pc')!.status).toBe('possible');
+});
+
+describe('slowdown checks beyond resource usage', () => {
+  const flow = getFlow('slow')!;
+  function normalReadings() {
+    let session = startSession(flow, intake);
+    for (const answer of ['low', 'low', 'low', 'enough'])
+      session = answerQuestion(flow, session, answer);
+    expect(session.outcome).toBe('in_progress');
+    expect(session.current).toBe('slow_scope');
+    expect(session.causes.filter((cause) => cause.status === 'unlikely')).toHaveLength(4);
+    return session;
+  }
+  it('normal readings lead to an app comparison and a verified fix', () => {
+    let session = normalReadings();
+    const readings = session.history;
+    session = answerQuestion(flow, session, 'app');
+    session = answerQuestion(flow, session, 'yes');
+    expect(session.current).toBe('slow_app_fix');
+    expect(session.fixes).toHaveLength(0);
+    const solved = verifyFix(flow, session, 'fixed');
+    expect(solved.outcome).toBe('solved');
+    expect(solved.history.slice(0, 4)).toEqual(readings);
+  });
+  it('requires an identifiable nonessential app before suggesting a startup action', () => {
+    const scope = answerQuestion(flow, normalReadings(), 'startup');
+    const unknown = answerQuestion(flow, scope, 'unsure');
+    expect(unknown.outcome).toBe('solution_not_found');
+    expect(unknown.fixes).toHaveLength(0);
+    expect(unknown.causes.find((cause) => cause.id === 'startup')!.status).toBe('possible');
+    const known = answerQuestion(flow, scope, 'known');
+    expect(known.current).toBe('startup_fix');
+    expect(verifyFix(flow, known, 'fixed').outcome).toBe('solved');
+  });
+  it.each(['no_change', 'could_not_complete', 'worse'] as const)(
+    'does not turn a %s app action into success',
+    (result) => {
+      let session = normalReadings();
+      session = answerQuestion(flow, session, 'app');
+      session = answerQuestion(flow, session, 'yes');
+      const completed = verifyFix(flow, session, result);
+      expect(completed.outcome).toBe('solution_not_found');
+      expect(completed.history.slice(0, -1)).toEqual(session.history);
+      expect(completed.stopReason).toBe(result === 'worse' ? 'worse' : 'exhausted');
+    },
+  );
+});
+
+it('a working replacement display requires verification without claiming the cable is faulty', () => {
+  const flow = getFlow('monitor')!;
+  let session = startSession(flow, intake);
+  for (const answer of ['yes', 'right', 'no', 'works'])
+    session = answerQuestion(flow, session, answer);
+  expect(session.current).toBe('replacement_fix');
+  expect(session.outcome).toBe('in_progress');
+  expect(session.causes.find((cause) => cause.id === 'cable')!.status).toBe('possible');
+  expect(session.causes.find((cause) => cause.id === 'display_path')!.status).toBe('likely');
+  expect(verifyFix(flow, session, 'fixed').outcome).toBe('solved');
+  expect(verifyFix(flow, session, 'no_change').outcome).toBe('solution_not_found');
+  expect(verifyFix(flow, session, 'improved').outcome).toBe('partially_solved');
 });

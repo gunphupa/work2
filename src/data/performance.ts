@@ -7,7 +7,7 @@ const causes: [string, ReturnType<typeof t>][] = [
   ['space', t('Low free storage', 'พื้นที่จัดเก็บเหลือน้อย')],
   ['app', t('A particular application', 'ปัญหาเฉพาะแอป')],
 ];
-function resourceNodes(): Node[] {
+function resourceNodes(nextCheck = 'unresolved'): Node[] {
   return [
     q(
       'cpu_read',
@@ -277,10 +277,11 @@ function resourceNodes(): Node[] {
         o('low', 'Less than about 10% is free', 'เหลือว่างน้อยกว่าประมาณ 10%', 'space_fix', {
           space: 'likely',
         }),
-        o('enough', 'More free space is available', 'มีพื้นที่ว่างมากกว่านั้น', 'unresolved', {
+        o('enough', 'More free space is available', 'มีพื้นที่ว่างมากกว่านั้น', nextCheck, {
           space: 'unlikely',
         }),
       ],
+      nextCheck,
     ),
     fix(
       'space_fix',
@@ -301,7 +302,7 @@ function resourceNodes(): Node[] {
         ),
       ],
       retry,
-      'unresolved',
+      nextCheck,
       t(
         'Removing files can cause data loss. Keep a verified backup and do not remove unfamiliar or system files.',
         'การลบไฟล์อาจทำให้ข้อมูลสูญหาย ต้องมีสำเนาที่ตรวจสอบแล้ว และห้ามลบไฟล์ระบบหรือไฟล์ที่ไม่รู้จัก',
@@ -309,9 +310,132 @@ function resourceNodes(): Node[] {
     ),
   ];
 }
-const base = resourceNodes();
 export const performanceFlows = [
-  flow('slow', 'cpu_read', causes, base),
+  flow(
+    'slow',
+    'cpu_read',
+    [...causes, ['startup', t('Apps opened at sign-in', 'แอปที่เปิดเมื่อเข้าสู่ระบบ')]],
+    [
+      ...resourceNodes('slow_scope'),
+      q(
+        'slow_scope',
+        t('When do you notice the slowdown?', 'สังเกตว่าเครื่องช้าเมื่อใด'),
+        t(
+          'The resource checks have not resolved the slowdown. Its timing and scope can point to a more specific check.',
+          'การตรวจทรัพยากรยังแก้อาการช้าไม่ได้ ช่วงเวลาและขอบเขตของอาการช่วยเลือกการตรวจที่เจาะจงขึ้นได้',
+        ),
+        [
+          t(
+            'Think about the last time it happened: was one app slow, was it just after signing in, or did all everyday tasks stay slow?',
+            'นึกถึงครั้งล่าสุดที่เกิดอาการ: ช้าเฉพาะแอป หลังเข้าสู่ระบบ หรือช้าต่อเนื่องทุกงานทั่วไป',
+          ),
+        ],
+        [
+          o('app', 'Mostly in one app', 'ส่วนใหญ่ช้าในแอปเดียว', 'app_compare', {
+            app: 'possible',
+          }),
+          o('startup', 'Just after signing in', 'ช่วงหลังเข้าสู่ระบบ', 'startup_check', {
+            startup: 'possible',
+          }),
+          o('all', 'Across apps, throughout the session', 'ช้าหลายแอปตลอดการใช้งาน', 'unresolved'),
+        ],
+      ),
+      q(
+        'app_compare',
+        t('Do other local apps respond normally?', 'แอปอื่นในเครื่องตอบสนองตามปกติหรือไม่'),
+        t(
+          'Comparing apps helps separate an app-specific delay from a slowdown across Windows.',
+          'การเปรียบเทียบแอปช่วยแยกอาการช้าเฉพาะแอปออกจากอาการช้าทั้ง Windows',
+        ),
+        [
+          t(
+            'While the affected app is slow, try opening File Explorer or a small local document in another app. Compare basic actions such as opening a menu, without starting a demanding task.',
+            'ขณะแอปนั้นช้า ลองเปิด File Explorer หรือเอกสารขนาดเล็กในแอปอื่น เปรียบเทียบการใช้งานพื้นฐาน เช่น เปิดเมนู โดยไม่เริ่มงานหนัก',
+          ),
+        ],
+        [
+          o('yes', 'Other local apps work normally', 'แอปอื่นในเครื่องทำงานปกติ', 'slow_app_fix', {
+            app: 'likely',
+          }),
+          o('no', 'Other local apps are slow too', 'แอปอื่นในเครื่องช้าด้วย', 'unresolved', {
+            app: 'unlikely',
+          }),
+        ],
+      ),
+      fix(
+        'slow_app_fix',
+        t(
+          'Restart the affected app with less work open',
+          'เปิดแอปที่มีปัญหาใหม่โดยลดงานที่เปิดอยู่',
+        ),
+        'app',
+        t(
+          'Other local apps respond normally. Restarting the affected app tests whether its current workload or session is contributing.',
+          'แอปอื่นตอบสนองปกติ การเปิดแอปที่มีปัญหาใหม่ช่วยทดสอบว่างานหรือสถานะปัจจุบันของแอปมีส่วนทำให้ช้าหรือไม่',
+        ),
+        [
+          saveWork,
+          t(
+            'Close only the affected app using its own menu, then reopen it with one small document or task. Do not force it closed if work is unsaved. Keep this FixFlow tab open; if that prevents restarting the affected browser, choose “I couldn’t complete the step”.',
+            'ปิดเฉพาะแอปที่มีปัญหาจากเมนูของแอป แล้วเปิดใหม่พร้อมเอกสารหรืองานเล็กหนึ่งรายการ ห้ามบังคับปิดหากยังไม่บันทึกงาน เปิดแท็บ FixFlow นี้ไว้ หากจึงเริ่มเบราว์เซอร์ใหม่ไม่ได้ ให้เลือก “ทำตามขั้นตอนไม่ได้”',
+          ),
+        ],
+        retry,
+        'unresolved',
+      ),
+      q(
+        'startup_check',
+        t(
+          'Is a familiar, nonessential startup app still running?',
+          'มีแอปเริ่มต้นที่รู้จักและไม่จำเป็นกำลังทำงานอยู่หรือไม่',
+        ),
+        t(
+          'An app that opens at sign-in may add work during startup. We can test it without disabling Windows services.',
+          'แอปที่เปิดตอนเข้าสู่ระบบอาจเพิ่มภาระช่วงเริ่มต้น ทดสอบได้โดยไม่ปิดบริการ Windows',
+        ),
+        [
+          t(
+            'Open Task Manager with Ctrl + Shift + Esc. Check Startup apps (Windows 10: More details → Startup) for enabled apps you installed. In Processes, see whether one is still running. Do not change anything yet.',
+            'เปิด Task Manager ด้วย Ctrl + Shift + Esc ดู Startup apps (Windows 10: More details → Startup) หาแอปที่คุณติดตั้งและเปิดใช้อยู่ แล้วดูใน Processes ว่ายังทำงานหรือไม่ ยังไม่ต้องเปลี่ยนค่า',
+          ),
+          t(
+            'Consider only an app you can close normally without interrupting a transfer or losing work. Exclude Windows, security software, device utilities, and apps managed by your workplace.',
+            'เลือกเฉพาะแอปที่ปิดตามปกติได้โดยไม่ขัดจังหวะการถ่ายโอนหรือทำให้งานสูญหาย ยกเว้น Windows โปรแกรมความปลอดภัย โปรแกรมควบคุมอุปกรณ์ และแอปที่ที่ทำงานดูแล',
+          ),
+        ],
+        [
+          o(
+            'known',
+            'Yes, an app I can safely close',
+            'มีแอปที่ปิดได้อย่างปลอดภัย',
+            'startup_fix',
+            { startup: 'possible' },
+          ),
+          o('none', 'No suitable app to test', 'ไม่มีแอปที่เหมาะจะทดสอบ', 'unresolved'),
+        ],
+      ),
+      fix(
+        'startup_fix',
+        t('Close the unnecessary startup app', 'ปิดแอปเริ่มต้นที่ไม่จำเป็น'),
+        'startup',
+        t(
+          'Closing the identified app tests whether its activity contributes to the slowdown after sign-in.',
+          'การปิดแอปที่ระบุช่วยทดสอบว่าการทำงานของแอปมีส่วนทำให้ช้าหลังเข้าสู่ระบบหรือไม่',
+        ),
+        [
+          saveWork,
+          t(
+            'Close that app through its own menu, keeping FixFlow open. Leave Windows services and startup settings unchanged. Wait about a minute, then repeat the activity that was slow.',
+            'ปิดแอปนั้นจากเมนูของแอป โดยเปิด FixFlow ไว้ ไม่ต้องเปลี่ยนบริการ Windows หรือค่าเริ่มต้น รอประมาณหนึ่งนาทีแล้วลองงานที่เคยช้าอีกครั้ง',
+          ),
+        ],
+        retry,
+        'unresolved',
+        undefined,
+        t('Reopen the app from Start if needed.', 'เปิดแอปจาก Start อีกครั้งหากต้องใช้'),
+      ),
+    ],
+  ),
   flow('cpu', 'cpu_read', causes, resourceNodes()),
   flow(
     'memory',

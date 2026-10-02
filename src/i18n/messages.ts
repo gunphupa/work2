@@ -195,9 +195,35 @@ export const messages = {
     'มีขั้นตอนที่ช่วยได้ แต่ปัญหายังไม่หาย เก็บสรุปนี้ไว้ให้ผู้ช่วยตรวจต่อ',
   ),
   unresolved: t('Let’s stop the guesswork here.', 'หยุดการคาดเดาตรงนี้'),
+  unresolvedLead: t(
+    'A useful lead, but no verified fix yet.',
+    'พบเบาะแสแล้ว แต่ยังไม่ยืนยันวิธีแก้',
+  ),
   unresolvedBody: t(
-    'There isn’t enough evidence for a reliable solution. Your checks are still useful: share this summary with official support or a qualified technician.',
-    'ยังมีข้อมูลไม่พอสำหรับวิธีแก้ที่เชื่อถือได้ ผลตรวจยังมีประโยชน์ นำสรุปนี้ให้ฝ่ายสนับสนุนหรือช่างที่มีคุณสมบัติเหมาะสม',
+    'Your answers have reached the end of this guided path. They do not match another fix covered by this guide. Review the findings below and share the summary with official support for further checks.',
+    'คำตอบของคุณมาถึงปลายเส้นทางการตรวจนี้แล้ว และยังไม่ตรงกับวิธีแก้อื่นที่คู่มือครอบคลุม ตรวจผลด้านล่างแล้วนำสรุปให้ฝ่ายสนับสนุนช่วยตรวจต่อ',
+  ),
+  unresolvedLeadBody: t(
+    'Your checks point to the possibilities below, but no fix has been confirmed. Share these observations with the relevant app or device support team so they can continue from what you found.',
+    'ผลตรวจชี้ไปที่ความเป็นไปได้ด้านล่าง แต่ยังไม่ยืนยันว่าแก้ได้แล้ว นำข้อมูลนี้ให้ฝ่ายสนับสนุนของแอปหรืออุปกรณ์ที่เกี่ยวข้องตรวจต่อจากสิ่งที่พบ',
+  ),
+  incompleteBody: t(
+    'The last check was uncertain, did not match the listed answers, or could not be completed. This path needs that observation before it can suggest another fix. The recorded results below show what to check next with someone who can help.',
+    'การตรวจล่าสุดยังไม่แน่ใจ ไม่ตรงกับตัวเลือก หรือทำไม่สำเร็จ เส้นทางนี้ต้องใช้ข้อมูลนั้นก่อนแนะนำวิธีแก้ต่อ ผลที่บันทึกด้านล่างช่วยบอกสิ่งที่ควรตรวจร่วมกับผู้ช่วย',
+  ),
+  failedFixesBody: t(
+    'You tried the suggested actions, but none was confirmed to fix the original problem. This guide has no further matching steps. Share the results below with official support so they can avoid repeating unsuccessful actions.',
+    'คุณลองวิธีที่แนะนำแล้ว แต่ยังไม่มีวิธีที่ยืนยันว่าแก้อาการเดิมได้ คู่มือนี้ไม่มีขั้นตอนที่ตรงเพิ่มเติม นำผลด้านล่างให้ฝ่ายสนับสนุนเพื่อไม่ต้องลองวิธีที่ไม่ได้ผลซ้ำ',
+  ),
+  endedBody: t(
+    'You ended the investigation before confirming a fix. Here is what was recorded up to that point.',
+    'คุณจบการตรวจก่อนยืนยันว่าแก้ปัญหาได้แล้ว นี่คือข้อมูลที่บันทึกถึงตอนนั้น',
+  ),
+  lastCheck: t('Where this path stopped', 'จุดที่เส้นทางนี้หยุด'),
+  findings: t('What your checks found', 'สิ่งที่การตรวจพบ'),
+  findingsHint: t(
+    'These assessments use your reported observations. Only causes with recorded evidence are shown; they are not confirmed diagnoses.',
+    'การประเมินนี้ใช้ผลที่คุณรายงาน แสดงเฉพาะสาเหตุที่มีข้อมูลจากการตรวจ และยังไม่ใช่การวินิจฉัยที่ยืนยันแล้ว',
   ),
   unsafeTitle: t('Stop testing and get qualified help.', 'หยุดทดสอบและขอผู้เชี่ยวชาญช่วย'),
   unsafeBody: t(
@@ -205,6 +231,10 @@ export const messages = {
     'หากมีควัน กลิ่นไหม้ แบตเตอรี่บวม ของเหลว หรือร้อนผิดปกติ ให้หยุดใช้และหยุดชาร์จ หากปลอดภัยให้ปิดและตัดไฟภายนอก ห้ามเปิดหรือจับชิ้นส่วนที่ร้อนหรือเสียหาย ติดต่อผู้ผลิตหรือช่างที่มีคุณสมบัติเหมาะสม',
   ),
   worseTitle: t('Stop this step and review the change.', 'หยุดขั้นตอนนี้และตรวจสิ่งที่เปลี่ยน'),
+  worseBody: t(
+    'You reported that the last action made things worse. Stop further changes and review the undo guidance below. Keep the summary for official support if the problem continues.',
+    'คุณรายงานว่าขั้นตอนล่าสุดทำให้อาการแย่ลง หยุดเปลี่ยนแปลงเพิ่มเติมและดูวิธีย้อนกลับด้านล่าง เก็บสรุปไว้ให้ฝ่ายสนับสนุนหากปัญหายังอยู่',
+  ),
   undo: t('Returning to the previous state', 'การกลับสู่สภาพก่อนหน้า'),
   testsCompleted: t('Steps recorded', 'ขั้นตอนที่บันทึก'),
   duration: t('Time in this session', 'เวลาการตรวจครั้งนี้'),

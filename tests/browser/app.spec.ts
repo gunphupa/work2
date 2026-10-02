@@ -27,6 +27,16 @@ async function answer(page: Page, label: string) {
   await page.getByRole('radio', { name: label, exact: true }).check();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 }
+async function normalSlowdownReadings(page: Page) {
+  await begin(page, 'slow');
+  for (const label of [
+    'CPU stays below 50%',
+    'Below 85%',
+    'Disk is not consistently high',
+    'More free space is available',
+  ])
+    await answer(page, label);
+}
 for (const [id, answers] of cases)
   test(`${id}: diagnose, verify and complete`, async ({ page }) => {
     const flow = getFlow(id)!;
@@ -85,8 +95,78 @@ test('failed fix retains evidence, Other and Not sure guide safely', async ({ pa
   await expect(
     page.getByRole('heading', { name: 'Let’s stop the guesswork here.', exact: true }),
   ).toBeVisible();
+  await expect(page.getByText('You tried the suggested actions,', { exact: false })).toBeVisible();
   await page.locator('summary').filter({ hasText: 'Evidence so far' }).click();
   await expect(page.getByText('Managed by my school', { exact: false })).toBeVisible();
+});
+
+test('normal resource readings continue to an app fix with AI unavailable', async ({ page }) => {
+  await page.route('**/api/interpret', (route) => route.abort());
+  await normalSlowdownReadings(page);
+  await answer(page, 'Mostly in one app');
+  await answer(page, 'Other local apps work normally');
+  await expect(
+    page.getByRole('heading', {
+      name: 'Restart the affected app with less work open',
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole('radio', { name: "Yes, it's fixed", exact: true }).check();
+  await page.getByRole('button', { name: 'Record result', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Back to working.', exact: true })).toBeVisible();
+  const findings = page.getByRole('region', { name: 'What your checks found', exact: true });
+  await expect(findings).toContainText('A particular application');
+  await expect(findings).toContainText('CPU stays below 50%');
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test('a replacement monitor setup is verified before completing', async ({ page }) => {
+  await begin(page, 'monitor');
+  for (const label of [
+    'Yes, its menu appears',
+    'It matches the connected cable',
+    'Still no signal',
+    'A replacement cable or display works',
+  ])
+    await answer(page, label);
+  await expect(
+    page.getByRole('heading', { name: 'Verify the working display setup', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('radio', { name: "Yes, it's fixed", exact: true }).check();
+  await page.getByRole('button', { name: 'Record result', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Back to working.', exact: true })).toBeVisible();
+});
+
+test('an uncertain ending shows the missing check and preserves findings in both languages', async ({
+  page,
+}) => {
+  await normalSlowdownReadings(page);
+  await page.getByRole('radio', { name: 'I’m not sure', exact: true }).check();
+  await page
+    .getByRole('button', { name: 'I still can’t check · skip this test', exact: true })
+    .click();
+  await expect(page.getByText('The last check was uncertain,', { exact: false })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Where this path stopped', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('.completion-findings')
+      .filter({ has: page.getByRole('heading', { name: 'Where this path stopped', exact: true }) })
+      .getByText('When do you notice the slowdown?', { exact: true }),
+  ).toBeVisible();
+  const findings = page.getByRole('region', { name: 'What your checks found', exact: true });
+  await expect(findings).toContainText('Low free storage');
+  await expect(findings).not.toContainText('A particular application');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'ไทย', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'สิ่งที่การตรวจพบ', exact: true })).toBeVisible();
+  await expect(page.getByText('การตรวจล่าสุดยังไม่แน่ใจ', { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: 'test-results/findings-thai-mobile.png', fullPage: true });
 });
 test('numeric reading branches without rounding away evidence', async ({ page }) => {
   await begin(page, 'memory');
@@ -95,6 +175,24 @@ test('numeric reading branches without rounding away evidence', async ({ page })
   await expect(
     page.getByRole('heading', { name: 'What is using the most memory?', exact: true }),
   ).toBeVisible();
+});
+test('an unresolved shared Wi-Fi failure retains its supported lead', async ({ page }) => {
+  await begin(page, 'wifi');
+  for (const label of [
+    'Wi-Fi is on; airplane mode is off',
+    'Yes, my network is listed',
+    'Connected, but no internet',
+    'Neither device can access the internet',
+  ])
+    await answer(page, label);
+  await expect(
+    page.getByRole('heading', { name: 'A useful lead, but no verified fix yet.', exact: true }),
+  ).toBeVisible();
+  const findings = page.getByRole('region', { name: 'What your checks found', exact: true });
+  const router = findings.getByRole('listitem').filter({ hasText: 'Router or internet provider' });
+  await expect(router).toContainText('Likely');
+  await expect(router).toContainText('Neither device can access the internet');
+  await expect(findings).not.toContainText('Network sign-in or credentials');
 });
 test('unsupported system prevents starting; off-topic and unavailable requests remain usable', async ({
   page,

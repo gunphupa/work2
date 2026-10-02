@@ -24,11 +24,12 @@ No credentials or database are required for the guided diagnostic workflow. Ther
 
 ## What is implemented
 
-- 15 end-to-end diagnostic flows, with 140 question and fix nodes.
+- 15 end-to-end diagnostic flows, with 146 question and fix nodes.
 - Adaptive paths, qualitative cause statuses, evidence history, and relevant explanations.
 - Single choice, multiple symptom selection, numeric memory readings, free-text context, Other, and Not sure guides.
 - Explicit verification for every action: fixed, improved, unchanged, worse, and unable to complete.
 - Failed actions preserve prior evidence and continue to an unvisited check. Unsafe symptoms and worsening results stop the investigation.
+- Normal resource readings in the slow-computer flow lead to app and sign-in checks. A working replacement display setup leads to verification. Final summaries show observed cause assessments and distinguish incomplete checks, unsuccessful actions, and paths with no further covered fix.
 - Review and acknowledgement before caution actions. No BIOS flashing, registry edits, drive formatting, or forced repair commands.
 - English/Thai responsive interface, a How It Works page, and an About page explaining the research question.
 - Optional constrained AI interpretation, with local English/Thai matching when no key is configured or the service fails.

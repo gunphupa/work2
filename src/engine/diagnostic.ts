@@ -55,6 +55,7 @@ export function answerQuestion(
     throw new DiagnosticError('Invalid answer');
   const evidence: Evidence = {
     nodeId: node.id,
+    answerId: option.id,
     title: node.title,
     answer: option.label,
     detail: detail?.trim(),

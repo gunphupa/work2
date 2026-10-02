@@ -165,6 +165,7 @@ export const monitor = flow(
     ['power', t('Display power', 'ไฟเลี้ยงจอภาพ')],
     ['input', t('Wrong display input', 'ช่องรับสัญญาณภาพผิด')],
     ['cable', t('Video cable or connection', 'สายหรือการเชื่อมต่อภาพ')],
+    ['display_path', t('Original display or video connection', 'จอหรือการเชื่อมต่อภาพเดิม')],
     ['pc', t('Computer startup or graphics output', 'การเริ่มเครื่องหรือสัญญาณภาพจากคอมพิวเตอร์')],
   ],
   [
@@ -289,13 +290,39 @@ export const monitor = flow(
           'works',
           'A replacement cable or display works',
           'เปลี่ยนสายหรือจอแล้วใช้ได้',
-          'unresolved',
-          { cable: 'likely', pc: 'unlikely' },
+          'replacement_fix',
+          { display_path: 'likely', pc: 'unlikely' },
         ),
         o('fails', 'Neither restores a picture', 'ไม่มีอย่างใดช่วย', 'unresolved', {
           pc: 'possible',
         }),
       ],
+    ),
+    fix(
+      'replacement_fix',
+      t('Verify the working display setup', 'ตรวจชุดจอและสายที่ใช้ได้'),
+      'display_path',
+      t(
+        'Changing an external cable or display restored the picture. This points to the original display path, but does not prove which part failed.',
+        'การเปลี่ยนสายหรือจอภายนอกทำให้ภาพกลับมา จึงชี้ไปที่ชุดการเชื่อมต่อภาพเดิม แต่ยังพิสูจน์ไม่ได้ว่าชิ้นใดเสีย',
+      ),
+      [
+        t(
+          'Keep the compatible working cable or display connected, with no tension on the cable. Use the computer normally for a few minutes and check that the picture stays stable.',
+          'ใช้สายหรือจอที่รองรับและใช้ได้ต่อไป โดยไม่ดึงสายตึง ลองใช้งานปกติสักครู่แล้วตรวจว่าภาพคงที่',
+        ),
+        t(
+          'If the replacement is only borrowed, record which change helped before returning it. Have the original part checked before buying a replacement.',
+          'หากยืมอุปกรณ์มาทดสอบ ให้บันทึกว่าสิ่งใดช่วยก่อนคืน ควรตรวจชิ้นเดิมก่อนซื้อใหม่',
+        ),
+      ],
+      retry,
+      'unresolved',
+      undefined,
+      t(
+        'Stop using the replacement setup if it worsens the problem. Do not reconnect visibly damaged parts.',
+        'หยุดใช้ชุดทดแทนหากอาการแย่ลง ห้ามต่อชิ้นส่วนที่มองเห็นว่าเสียหายกลับเข้าไป',
+      ),
     ),
   ],
 );
