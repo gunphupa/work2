@@ -33,7 +33,7 @@ export function guardRequest(request: Request, scope: string): Response | null {
   if (!request.headers.get('content-type')?.startsWith('application/json'))
     return Response.json({ error: 'JSON is required.' }, { status: 415 });
   // In-memory abuse control, not identity or experiment data. Use trusted edge limits in production.
-  if (!limitRequest(scope, scope === 'interpret' ? 30 : 60))
+  if (!limitRequest(scope, scope === 'interpret' || scope === 'followups' ? 30 : 60))
     return Response.json(
       { error: 'Please wait before trying again.' },
       { status: 429, headers: { 'Retry-After': '60' } },

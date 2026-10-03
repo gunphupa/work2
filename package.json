@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "validate:flows": "tsx scripts/validate-flows.ts",
+    "audit:endings": "tsx scripts/audit-endings.ts",
     "feedback:export": "tsx scripts/export-feedback.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

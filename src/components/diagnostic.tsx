@@ -18,13 +18,16 @@ import { QuestionCard } from './question-card';
 import { FixCard } from './fix-card';
 import { ProgressPanel } from './evidence';
 import { Completion } from './completion';
+import { recordRecommendation } from '@/engine/recommendations';
 export function Diagnostic({ flow }: { flow: Flow }) {
   const { tx, m, setPendingDescription } = useApp();
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState(false);
   const [ending, setEnding] = useState(false);
   const node = flow.nodes.find((n) => n.id === session?.current);
-  const displayKey = session ? `${session.current}:${session.outcome}` : '';
+  const displayKey = session
+    ? `${session.current}:${session.outcome}:${session.recommendations?.length ?? 0}`
+    : '';
   useEffect(() => {
     if (displayKey) {
       document
@@ -92,7 +95,13 @@ export function Diagnostic({ flow }: { flow: Flow }) {
       {!session ? (
         <IntakeForm flow={flow} onStart={begin} />
       ) : finished ? (
-        <Completion session={session} flow={flow} />
+        <Completion
+          session={session}
+          flow={flow}
+          onRecommendationResult={(id, result) =>
+            update((s) => recordRecommendation(flow, s, id, result))
+          }
+        />
       ) : (
         <div className="diagnostic-layout">
           <div>

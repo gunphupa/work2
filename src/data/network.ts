@@ -1,5 +1,6 @@
 import { t } from '@/types/diagnostic';
 import { flow, q, o, fix, retry } from './builders';
+import { connectionChecks } from './connection-checks';
 const wifiGuide = [
   t(
     'Open Settings → Network & internet. Check Wi-Fi and Airplane mode. On Windows 10, the section is called Network & Internet.',
@@ -387,10 +388,11 @@ export const internet = flow(
           'traffic_fix',
           { load: 'likely' },
         ),
-        o('no', 'No known large transfers', 'ไม่มีการถ่ายโอนใหญ่ที่ทราบ', 'unresolved', {
+        o('no', 'No known large transfers', 'ไม่มีการถ่ายโอนใหญ่ที่ทราบ', 'browser_compare', {
           load: 'unlikely',
         }),
       ],
+      'browser_compare',
     ),
     fix(
       'traffic_fix',
@@ -407,9 +409,66 @@ export const internet = flow(
         ),
       ],
       retry,
-      'unresolved',
+      'browser_compare',
       undefined,
       t('Resume the transfer using its own app.', 'กลับไปดำเนินการถ่ายโอนต่อจากแอปเดิม'),
+    ),
+    q(
+      'browser_compare',
+      t(
+        'Does another browser load the same pages normally?',
+        'เบราว์เซอร์อื่นโหลดหน้าเดิมตามปกติหรือไม่',
+      ),
+      t(
+        'This separates a browser-specific issue from a connection that is slow across apps.',
+        'ช่วยแยกปัญหาเฉพาะเบราว์เซอร์ออกจากการเชื่อมต่อที่ช้าหลายแอป',
+      ),
+      [
+        t(
+          'Keep FixFlow open. If another trusted browser is already installed, compare the same two familiar pages there. Do not clear passwords, disable security tools, or install a new browser just for this test.',
+          'เปิด FixFlow ไว้ หากมีเบราว์เซอร์ที่เชื่อถือได้อีกตัวติดตั้งอยู่ เปรียบเทียบเว็บที่รู้จักสองหน้าเดิม ไม่ต้องลบรหัสผ่าน ปิดโปรแกรมความปลอดภัย หรือติดตั้งเบราว์เซอร์เพื่อทดสอบนี้',
+        ),
+      ],
+      [
+        o(
+          'yes',
+          'The other browser is noticeably faster',
+          'เบราว์เซอร์อื่นเร็วกว่าอย่างเห็นได้ชัด',
+          'browser_fix',
+          { device: 'likely' },
+        ),
+        o('no', 'Both browsers are slow', 'ช้าทั้งสองเบราว์เซอร์', 'router_check'),
+        o(
+          'unavailable',
+          'No other browser is available',
+          'ไม่มีเบราว์เซอร์อื่นให้ทดสอบ',
+          'router_check',
+        ),
+      ],
+      'router_check',
+    ),
+    {
+      ...fix(
+        'browser_fix',
+        t('Use the working browser for this task', 'ใช้เบราว์เซอร์ที่ทำงานได้สำหรับงานนี้'),
+        'device',
+        t(
+          'The same pages work better in another browser. This offers a workaround without resetting your data.',
+          'หน้าเดียวกันทำงานดีกว่าในอีกเบราว์เซอร์ เป็นทางเลี่ยงโดยไม่รีเซ็ตข้อมูล',
+        ),
+        [
+          t(
+            'Complete the original task in the working browser. Keep the affected browser’s data unchanged. If this helps, note both browser versions for follow-up support rather than assuming the whole internet connection was fixed.',
+            'ทำงานเดิมในเบราว์เซอร์ที่ใช้ได้ คงข้อมูลเบราว์เซอร์เดิมไว้ หากช่วยให้จดเวอร์ชันทั้งสองสำหรับฝ่ายช่วยเหลือ แทนการสรุปว่าเน็ตทั้งหมดถูกแก้แล้ว',
+          ),
+        ],
+        retry,
+        'router_check',
+      ),
+      confidenceOnSuccess: 'likely',
+    },
+    ...connectionChecks('provider').filter((node) =>
+      ['router_check', 'provider_status'].includes(node.id),
     ),
   ],
 );

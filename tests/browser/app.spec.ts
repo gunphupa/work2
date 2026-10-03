@@ -93,7 +93,7 @@ test('failed fix retains evidence, Other and Not sure guide safely', async ({ pa
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await answer(page, 'No, it fails in both');
   await expect(
-    page.getByRole('heading', { name: 'Let’s stop the guesswork here.', exact: true }),
+    page.getByRole('heading', { name: 'Let’s try the next checks.', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('You tried the suggested actions,', { exact: false })).toBeVisible();
   await page.locator('summary').filter({ hasText: 'Evidence so far' }).click();
@@ -338,4 +338,166 @@ test('free-text context and language switching preserve the active investigation
     page.getByRole('heading', { name: 'เลือกอุปกรณ์รับเสียงถูกต้องหรือไม่', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('ตัดออกตามผลการตรวจ', { exact: false })).toBeVisible();
+});
+
+test('reported gaming dead end now reaches region verification without AI', async ({ page }) => {
+  await page.route('**/api/interpret', (route) => route.abort());
+  await begin(page, 'gaming');
+  for (const label of [
+    'Players jump around or online actions are delayed',
+    'Only this game is affected',
+    'No relevant outage is reported',
+    'A distant region is selected and I can change it',
+  ])
+    await answer(page, label);
+  await expect(
+    page.getByRole('heading', { name: 'Try the game’s recommended nearby region', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('radio', { name: "Yes, it's fixed", exact: true }).check();
+  await page.getByRole('button', { name: 'Record result', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Back to working.', exact: true })).toBeVisible();
+});
+
+test('a confirmed game outage gives a recovery plan and no false success control', async ({
+  page,
+}) => {
+  await begin(page, 'gaming');
+  for (const label of [
+    'Players jump around or online actions are delayed',
+    'Only this game is affected',
+    'An outage affects my region or game mode',
+  ])
+    await answer(page, label);
+  const next = page.getByRole('region', { name: 'Recommended next checks', exact: true });
+  await expect(
+    next.getByRole('heading', { name: /Wait for the game service to recover/ }),
+  ).toBeVisible();
+  await expect(next).toContainText('official status page');
+  await expect(next.getByRole('combobox')).toHaveCount(0);
+});
+
+test('reported internet path offers follow-ups, reviews without a key, and avoids failed repeats', async ({
+  page,
+}) => {
+  await begin(page, 'internet');
+  for (const label of [
+    'Several services are slow',
+    'Only this computer is slow',
+    'No difference / Ethernet',
+    'No known large transfers',
+  ])
+    await answer(page, label);
+  await expect(
+    page.getByRole('heading', {
+      name: 'Does another browser load the same pages normally?',
+      exact: true,
+    }),
+  ).toBeVisible();
+  for (const label of [
+    'Both browsers are slow',
+    'Nothing looks abnormal',
+    'No relevant incident is listed',
+  ])
+    await answer(page, label);
+  const next = page.getByRole('region', { name: 'Recommended next checks', exact: true });
+  await expect(next.getByRole('heading', { name: /Reconnect only this computer/ })).toBeVisible();
+  await expect(next).not.toContainText('Inspect the router’s external connections');
+  await next.getByText('Help prioritize these checks', { exact: true }).click();
+  await next
+    .getByLabel('Any extra detail? (optional)', { exact: true })
+    .fill('Only this laptop is affected');
+  const responsePromise = page.waitForResponse('**/api/followups');
+  await next.getByRole('button', { name: 'Review my next checks', exact: true }).click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const payload = response.request().postDataJSON();
+  expect(payload).not.toHaveProperty('sessionId');
+  expect(payload).not.toHaveProperty('notes');
+  expect(payload.detail).toBe('Only this laptop is affected');
+  await expect(next.getByRole('status')).toContainText('Built-in recommendations are ready.');
+  const first = next.getByRole('article', {
+    name: 'Reconnect only this computer’s Wi-Fi once',
+    exact: true,
+  });
+  await first.getByRole('combobox').selectOption('no_change');
+  await first.getByRole('button', { name: 'Save follow-up result', exact: true }).click();
+  await expect(first).toHaveCount(0);
+  await expect(
+    next.getByRole('article', { name: 'Inspect the active network adapter’s status', exact: true }),
+  ).toBeVisible();
+});
+
+test('follow-up results require confirmation and remain useful when AI requests fail', async ({
+  page,
+}) => {
+  await begin(page, 'wifi');
+  for (const label of [
+    'Wi-Fi is on; airplane mode is off',
+    'Yes, my network is listed',
+    'Connected, but no internet',
+    'Neither device can access the internet',
+  ])
+    await answer(page, label);
+  const next = page.getByRole('region', { name: 'Recommended next checks', exact: true });
+  await page.route('**/api/followups', (route) => route.abort());
+  await next.getByText('Help prioritize these checks', { exact: true }).click();
+  await next.getByRole('button', { name: 'Review my next checks', exact: true }).click();
+  await expect(next.getByRole('status')).toContainText('AI review is unavailable.');
+  const first = next.getByRole('article').first();
+  await expect(
+    first.getByRole('button', { name: 'Save follow-up result', exact: true }),
+  ).toBeDisabled();
+  await first.getByRole('combobox').selectOption('fixed');
+  await first.getByRole('button', { name: 'Save follow-up result', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Back to working.', exact: true })).toBeVisible();
+  await expect(next).toHaveCount(0);
+});
+
+test('a worsening follow-up stops further suggestions and explains how to stop', async ({
+  page,
+}) => {
+  await begin(page, 'wifi');
+  for (const label of [
+    'Wi-Fi is on; airplane mode is off',
+    'Yes, my network is listed',
+    'Connected, but no internet',
+    'Neither device can access the internet',
+  ])
+    await answer(page, label);
+  const first = page
+    .getByRole('region', { name: 'Recommended next checks', exact: true })
+    .getByRole('article')
+    .first();
+  await first.getByRole('combobox').selectOption('worse');
+  await first.getByRole('button', { name: 'Save follow-up result', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Stop this step and review the change.', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('Stop this follow-up.', { exact: false })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Recommended next checks', exact: true }),
+  ).toHaveCount(0);
+});
+
+test('Thai recommendations preserve selections and pass mobile accessibility', async ({ page }) => {
+  await begin(page, 'wifi');
+  for (const label of [
+    'Wi-Fi is on; airplane mode is off',
+    'Yes, my network is listed',
+    'Connected, but no internet',
+    'Neither device can access the internet',
+  ])
+    await answer(page, label);
+  const first = page
+    .getByRole('region', { name: 'Recommended next checks', exact: true })
+    .getByRole('article')
+    .first();
+  await first.getByRole('combobox').selectOption('no_change');
+  await page.getByRole('button', { name: 'ไทย', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const next = page.getByRole('region', { name: 'การตรวจต่อที่แนะนำ', exact: true });
+  await expect(next.getByRole('combobox').first()).toHaveValue('no_change');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: 'test-results/recommendations-thai-mobile.png', fullPage: true });
 });

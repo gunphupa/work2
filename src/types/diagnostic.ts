@@ -90,6 +90,7 @@ export interface Session {
   history: Evidence[];
   causes: CauseState[];
   fixes: FixAttempt[];
+  recommendations?: { id: string; result: FixResult; timestamp: number }[];
   notes: { text: string; symptoms: string[] }[];
   outcome: Outcome;
   stopReason?: 'exhausted' | 'worse' | 'ended' | 'invalid' | 'safety';

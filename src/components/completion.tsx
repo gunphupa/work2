@@ -9,11 +9,21 @@ import {
   AlertTriangle,
   Compass,
 } from 'lucide-react';
-import type { Session, Flow } from '@/types/diagnostic';
+import { t, type Session, type Flow, type FixResult } from '@/types/diagnostic';
 import { useApp } from './providers';
 import { Feedback } from './feedback';
 import { EvidenceList } from './evidence';
-export function Completion({ session, flow }: { session: Session; flow: Flow }) {
+import { Recommendations } from './recommendations';
+import { recommendations } from '@/engine/recommendations';
+export function Completion({
+  session,
+  flow,
+  onRecommendationResult,
+}: {
+  session: Session;
+  flow: Flow;
+  onRecommendationResult: (id: string, result: FixResult) => void;
+}) {
   const { tx, m } = useApp();
   const solved = session.outcome === 'solved';
   const partial = session.outcome === 'partially_solved';
@@ -39,7 +49,13 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
             : session.fixes.some((fix) => fix.result === 'no_change')
               ? m.failedFixesBody
               : m.unresolvedBody;
-  const latestFix = flow.nodes.find((n) => n.id === session.fixes.at(-1)?.fixId);
+  const latestFix = flow.nodes.find((n) => n.id === lastCheck?.nodeId);
+  const workedRecommendation = session.recommendations?.findLast(
+    (r) => r.result === 'fixed' || r.result === 'improved',
+  );
+  const workedRecommendationTitle = session.history.find(
+    (e) => e.nodeId === `recommendation:${workedRecommendation?.id}`,
+  )?.title;
   const workedFix = flow.nodes.find(
     (n) =>
       n.id ===
@@ -54,6 +70,11 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
       reportedContext: session.context,
       outcome: session.outcome,
       stopReason: session.stopReason,
+      nextChecks: recommendations(flow, session).map((r) => ({
+        title: tx(r.title),
+        steps: r.steps.map(tx),
+        lookFor: tx(r.lookFor),
+      })),
       durationSeconds: Math.round(
         ((session.endedAt ?? session.startedAt) - session.startedAt) / 1000,
       ),
@@ -126,7 +147,26 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
             <p>{tx(latestFix.undo)}</p>
           </div>
         )}
-        {workedFix?.kind === 'fix' && !unsafe && !worse && (
+        {worse && lastCheck?.nodeId.startsWith('recommendation:') && (
+          <p className="warning-message">
+            {tx(
+              t(
+                'Stop this follow-up. Restore only temporary settings you changed if you can do so safely. If the problem persists or you are unsure, give the last check and its result to qualified support before trying anything else.',
+                'หยุดการตรวจต่อนี้ คืนเฉพาะค่าชั่วคราวที่คุณเปลี่ยนหากทำได้อย่างปลอดภัย หากยังมีปัญหาหรือไม่แน่ใจ แจ้งการตรวจล่าสุดและผลให้ผู้เชี่ยวชาญก่อนลองอย่างอื่น',
+              ),
+            )}
+          </p>
+        )}
+        {workedRecommendationTitle && !unsafe && !worse && (
+          <div className="worked-fix">
+            <Check size={20} />
+            <div>
+              <span>{tx(m.fixedBy)}</span>
+              <strong>{tx(workedRecommendationTitle)}</strong>
+            </div>
+          </div>
+        )}
+        {workedFix?.kind === 'fix' && !workedRecommendationTitle && !unsafe && !worse && (
           <div className="worked-fix">
             <Check size={20} />
             <div>
@@ -135,6 +175,12 @@ export function Completion({ session, flow }: { session: Session; flow: Flow }) 
             </div>
           </div>
         )}
+        <Recommendations
+          key={`${session.id}:${session.history.length}`}
+          flow={flow}
+          session={session}
+          onResult={onRecommendationResult}
+        />
         <div className="completion-stats">
           <div>
             <strong>{session.history.length}</strong>

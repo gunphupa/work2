@@ -1,5 +1,6 @@
 import { t } from '@/types/diagnostic';
 import { flow, q, o, fix, retry, taskGuide, saveWork } from './builders';
+import { connectionChecks } from './connection-checks';
 export const heat = flow(
   'heat',
   'safety',
@@ -135,6 +136,7 @@ export const gaming = flow(
   'type',
   [
     ['network', t('Online connection latency', 'ความหน่วงเครือข่ายออนไลน์')],
+    ['service', t('Game service or server region', 'บริการเกมหรือภูมิภาคเซิร์ฟเวอร์')],
     ['render', t('Graphics workload', 'ภาระการแสดงผลภาพ')],
     ['background', t('Background workload', 'ภาระงานเบื้องหลัง')],
     ['heat', t('Heat-related performance limits', 'ประสิทธิภาพลดลงจากความร้อน')],
@@ -192,16 +194,12 @@ export const gaming = flow(
           'network_fix',
           { network: 'likely' },
         ),
-        o(
-          'server',
-          'Only this game, or the service reports an outage',
-          'เฉพาะเกมนี้หรือบริการแจ้งขัดข้อง',
-          'unresolved',
-        ),
-        o('all', 'Several online services are affected', 'หลายบริการมีปัญหา', 'unresolved', {
+        o('server', 'Only this game is affected', 'มีปัญหาเฉพาะเกมนี้', 'service_status'),
+        o('all', 'Several online services are affected', 'หลายบริการมีปัญหา', 'connection_kind', {
           network: 'likely',
         }),
       ],
+      'service_status',
     ),
     fix(
       'network_fix',
@@ -215,8 +213,95 @@ export const gaming = flow(
         ),
       ],
       retry,
-      'unresolved',
+      'service_status',
     ),
+    q(
+      'service_status',
+      t('Does the game publisher report an outage?', 'ผู้พัฒนาเกมแจ้งบริการขัดข้องหรือไม่'),
+      t(
+        'A game-specific delay does not by itself prove that the servers are down.',
+        'หน่วงเฉพาะเกมไม่ได้พิสูจน์ว่าเซิร์ฟเวอร์ล่ม',
+      ),
+      [
+        t(
+          'Check the game launcher’s service notice or the publisher’s official status page for the affected region and mode. Do not treat unrelated player posts as a confirmed outage.',
+          'ดูประกาศในตัวเปิดเกมหรือหน้าสถานะทางการของผู้พัฒนาสำหรับภูมิภาคและโหมดที่ใช้ ไม่ถือโพสต์ผู้เล่นที่ไม่เกี่ยวข้องว่าเป็นการยืนยันบริการล่ม',
+        ),
+      ],
+      [
+        o(
+          'outage',
+          'An outage affects my region or game mode',
+          'มีเหตุขัดข้องตรงกับภูมิภาคหรือโหมดที่ใช้',
+          'unresolved',
+          { service: 'likely' },
+        ),
+        o('normal', 'No relevant outage is reported', 'ไม่มีประกาศขัดข้องที่เกี่ยวข้อง', 'region'),
+      ],
+      'region',
+    ),
+    q(
+      'region',
+      t('Is the game using a distant server region?', 'เกมใช้เซิร์ฟเวอร์ภูมิภาคที่ไกลหรือไม่'),
+      t(
+        'A distant server can add delay even when other internet services work normally.',
+        'เซิร์ฟเวอร์ไกลอาจเพิ่มความหน่วงแม้บริการเน็ตอื่นปกติ',
+      ),
+      [
+        t(
+          'If the game exposes region or matchmaking settings, read the current selection and the publisher’s guidance. Do not change account country or payment settings. If region selection is not available, use the matching answer.',
+          'หากเกมมีค่าภูมิภาคหรือจับคู่ ดูค่าปัจจุบันและคำแนะนำผู้พัฒนา ห้ามเปลี่ยนประเทศบัญชีหรือการชำระเงิน หากเลือกภูมิภาคไม่ได้ให้เลือกคำตอบนั้น',
+        ),
+      ],
+      [
+        o(
+          'distant',
+          'A distant region is selected and I can change it',
+          'เลือกภูมิภาคไกลและเปลี่ยนได้',
+          'region_fix',
+          { service: 'possible' },
+        ),
+        o(
+          'nearby',
+          'Automatic or the recommended nearby region',
+          'อัตโนมัติหรือภูมิภาคใกล้ที่แนะนำ',
+          'connection_kind',
+        ),
+        o(
+          'unavailable',
+          'This game does not offer region selection',
+          'เกมนี้ไม่มีตัวเลือกภูมิภาค',
+          'connection_kind',
+        ),
+      ],
+      'connection_kind',
+    ),
+    {
+      ...fix(
+        'region_fix',
+        t('Try the game’s recommended nearby region', 'ลองภูมิภาคใกล้ที่เกมแนะนำ'),
+        'service',
+        t(
+          'You found a distant selectable server region. This is a reversible comparison.',
+          'พบว่ามีการเลือกเซิร์ฟเวอร์ไกล เป็นการเปรียบเทียบที่คืนค่าได้',
+        ),
+        [
+          t(
+            'Finish the current match. Note the old region, select the publisher-recommended nearby region, and compare the same mode. Do not leave a competitive match or change your account country.',
+            'จบแมตช์ปัจจุบันก่อน จดภูมิภาคเดิม เลือกภูมิภาคใกล้ที่ผู้พัฒนาแนะนำแล้วเทียบโหมดเดิม ห้ามออกจากแมตช์แข่งขันหรือเปลี่ยนประเทศบัญชี',
+          ),
+        ],
+        retry,
+        'connection_kind',
+        undefined,
+        t(
+          'Restore the previous matchmaking region if the change does not help.',
+          'คืนภูมิภาคจับคู่เดิมหากไม่ช่วย',
+        ),
+      ),
+      confidenceOnSuccess: 'likely',
+    },
+    ...connectionChecks('network'),
     q(
       'load',
       t('Are other demanding apps running?', 'มีแอปหนักอื่นทำงานอยู่หรือไม่'),

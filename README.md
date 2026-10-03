@@ -24,12 +24,14 @@ No credentials or database are required for the guided diagnostic workflow. Ther
 
 ## What is implemented
 
-- 15 end-to-end diagnostic flows, with 146 question and fix nodes.
+- 15 end-to-end diagnostic flows, with 158 question and fix nodes.
 - Adaptive paths, qualitative cause statuses, evidence history, and relevant explanations.
 - Single choice, multiple symptom selection, numeric memory readings, free-text context, Other, and Not sure guides.
 - Explicit verification for every action: fixed, improved, unchanged, worse, and unable to complete.
 - Failed actions preserve prior evidence and continue to an unvisited check. Unsafe symptoms and worsening results stop the investigation.
 - Normal resource readings in the slow-computer flow lead to app and sign-in checks. A working replacement display setup leads to verification. Final summaries show observed cause assessments and distinguish incomplete checks, unsuccessful actions, and paths with no further covered fix.
+- Every unresolved flow has context-dependent next checks, a specific waiting plan, or a targeted support handoff. Recommendations explain their rationale, instructions, and what results mean. Recording a failed/skipped follow-up removes it; only explicit confirmation marks a problem solved. Safety and worsening stops suppress further procedures.
+- Gaming separates one-game symptoms from an official outage, then checks server region and connection. Slow internet continues past no transfers with browser comparison and router/provider observations.
 - Review and acknowledgement before caution actions. No BIOS flashing, registry edits, drive formatting, or forced repair commands.
 - English/Thai responsive interface, a How It Works page, and an About page explaining the research question.
 - Optional constrained AI interpretation, with local English/Thai matching when no key is configured or the service fails.
@@ -79,6 +81,8 @@ The AI request uses a fixed system policy, strict structured output, allowed val
 
 Free-text descriptions are sent to the app server; enabling AI also sends them to the provider. The interface explains this and asks users not to include personal information, passwords, or recovery keys. Descriptions and diagnostic button answers are not stored with feedback.
 
+The optional **Review my next checks** action posts bounded answer/result IDs and newly entered optional context to `/api/followups`. The server replays the graph to validate the history, determines eligible recommendations, then lets AI order only those IDs. It never accepts model-generated procedures or an outcome. Instructions remain bilingual built-in content. No review request is made automatically; earlier free text, notes, numeric details, and session IDs are excluded. Missing keys or provider failures preserve all local recommendations. Screenshot interpretation and live web searches are not implemented.
+
 ## Feedback and competition results
 
 Feedback is opt-in at the end of a session. It stores the selected flow/category, outcome, reported success, three 1–5 ratings, steps, duration, language, optional comment, timestamp, and a random session ID used solely to deduplicate retries. It does not store diagnostic notes, names, emails, IP addresses, or precise location. Hosting infrastructure may have its own request logs.
@@ -111,6 +115,8 @@ npm run test:e2e
 Browser tests exercise the production build and start their own server on port 3100. This cloud environment already provides `/usr/bin/chromium`; the Playwright configuration uses it. Elsewhere run `npx playwright install chromium` once, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to an installed compatible Chromium binary. The browser download requires network access to Playwright's official distribution hosts.
 
 The automated suite covers every flow's graph and transitions, end-to-end completion for all 15 flows, uncertainty and Other paths, failed fixes, caution gates, safety stops, malformed AI responses, API failures, feedback retry behavior, exports, English/Thai, mobile overflow, and accessibility checks. Automated accessibility checks are supplemented by visual review; they do not replace testing with assistive technology.
+
+`npm run audit:endings` audits every terminal graph branch using one representative history per node. It verifies next-step coverage for unresolved outcomes and reports safety/worsening stops separately. This is structural coverage, not every combination of answers, evidence that every suggested check will help, or a measured real-world success rate. Follow-up tests additionally cover the reported gaming/internet sequences, prior evidence, failed/unsafe results, and constrained AI ranking.
 
 Formatting: `npm run format` or `npm run format:check`.
 

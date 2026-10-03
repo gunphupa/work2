@@ -1478,6 +1478,66 @@ strong {
   font-size: 14px;
   line-height: 1.9;
 }
+.next-checks {
+  margin-top: 26px;
+  overflow-wrap: anywhere;
+}
+.next-checks h2 {
+  font-size: 20px;
+}
+.next-checks p,
+.next-checks li {
+  font-size: 13px;
+  line-height: 1.85;
+}
+.next-checks > p {
+  margin: 12px 0;
+}
+.recommendation-card {
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid #425a80;
+  border-radius: 10px;
+  background: #162235;
+}
+.recommendation-card h3 {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.recommendation-card p {
+  margin: 12px 0;
+}
+.recommendation-card ol {
+  list-style: decimal;
+  padding-left: 20px;
+}
+.recommendation-card li {
+  margin: 10px 0;
+}
+.recommendation-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.recommendation-result label {
+  font-size: 13px;
+}
+.recommendation-result select {
+  padding: 10px;
+  max-width: 100%;
+  min-width: 0;
+  color: #e3eafa;
+  background: #111b2a;
+  border: 1px solid #7183a1;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+}
+.recommendation-result select:focus-visible {
+  outline: 2px solid #c1cfff;
+  outline-offset: 2px;
+}
 .completion-findings {
   margin: 24px 0;
   padding: 18px;

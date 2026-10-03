@@ -191,29 +191,29 @@ export const messages = {
   ),
   partial: t('Progress, with more to investigate.', 'ดีขึ้น แต่ยังต้องตรวจเพิ่มเติม'),
   partialBody: t(
-    'A step helped, but the problem isn’t fully resolved. Keep this summary for the next person who helps.',
-    'มีขั้นตอนที่ช่วยได้ แต่ปัญหายังไม่หาย เก็บสรุปนี้ไว้ให้ผู้ช่วยตรวจต่อ',
+    'A step helped, but the problem isn’t fully resolved. The recommendations below continue from what you have already checked.',
+    'มีขั้นตอนที่ช่วยได้ แต่ปัญหายังไม่หาย คำแนะนำด้านล่างต่อยอดจากสิ่งที่คุณตรวจแล้ว',
   ),
-  unresolved: t('Let’s stop the guesswork here.', 'หยุดการคาดเดาตรงนี้'),
+  unresolved: t('Let’s try the next checks.', 'ลองตรวจขั้นต่อไปกัน'),
   unresolvedLead: t(
     'A useful lead, but no verified fix yet.',
     'พบเบาะแสแล้ว แต่ยังไม่ยืนยันวิธีแก้',
   ),
   unresolvedBody: t(
-    'Your answers have reached the end of this guided path. They do not match another fix covered by this guide. Review the findings below and share the summary with official support for further checks.',
-    'คำตอบของคุณมาถึงปลายเส้นทางการตรวจนี้แล้ว และยังไม่ตรงกับวิธีแก้อื่นที่คู่มือครอบคลุม ตรวจผลด้านล่างแล้วนำสรุปให้ฝ่ายสนับสนุนช่วยตรวจต่อ',
+    'There is no confirmed fix yet. Based on your answers, the recommendations below show what to try or investigate next. Your completed checks are preserved.',
+    'ยังไม่มีวิธีแก้ที่ยืนยันได้ คำแนะนำด้านล่างใช้คำตอบของคุณเพื่อบอกสิ่งที่ควรลองหรือตรวจต่อ โดยเก็บผลตรวจที่ทำแล้วไว้',
   ),
   unresolvedLeadBody: t(
-    'Your checks point to the possibilities below, but no fix has been confirmed. Share these observations with the relevant app or device support team so they can continue from what you found.',
-    'ผลตรวจชี้ไปที่ความเป็นไปได้ด้านล่าง แต่ยังไม่ยืนยันว่าแก้ได้แล้ว นำข้อมูลนี้ให้ฝ่ายสนับสนุนของแอปหรืออุปกรณ์ที่เกี่ยวข้องตรวจต่อจากสิ่งที่พบ',
+    'Your checks point to some useful possibilities, but no fix has been confirmed. Start with the recommended next check below; the findings explain what has already been tested.',
+    'ผลตรวจชี้ไปที่ความเป็นไปได้ที่มีประโยชน์ แต่ยังไม่ยืนยันว่าแก้ได้แล้ว เริ่มจากการตรวจต่อที่แนะนำด้านล่าง โดยผลตรวจบอกสิ่งที่ทำแล้ว',
   ),
   incompleteBody: t(
     'The last check was uncertain, did not match the listed answers, or could not be completed. This path needs that observation before it can suggest another fix. The recorded results below show what to check next with someone who can help.',
     'การตรวจล่าสุดยังไม่แน่ใจ ไม่ตรงกับตัวเลือก หรือทำไม่สำเร็จ เส้นทางนี้ต้องใช้ข้อมูลนั้นก่อนแนะนำวิธีแก้ต่อ ผลที่บันทึกด้านล่างช่วยบอกสิ่งที่ควรตรวจร่วมกับผู้ช่วย',
   ),
   failedFixesBody: t(
-    'You tried the suggested actions, but none was confirmed to fix the original problem. This guide has no further matching steps. Share the results below with official support so they can avoid repeating unsuccessful actions.',
-    'คุณลองวิธีที่แนะนำแล้ว แต่ยังไม่มีวิธีที่ยืนยันว่าแก้อาการเดิมได้ คู่มือนี้ไม่มีขั้นตอนที่ตรงเพิ่มเติม นำผลด้านล่างให้ฝ่ายสนับสนุนเพื่อไม่ต้องลองวิธีที่ไม่ได้ผลซ้ำ',
+    'You tried the suggested actions, but none was confirmed to fix the original problem. The recommendations below focus on additional checks and what their results would mean, without repeating those actions.',
+    'คุณลองวิธีที่แนะนำแล้ว แต่ยังไม่มีวิธีที่ยืนยันว่าแก้อาการเดิมได้ คำแนะนำด้านล่างเน้นการตรวจเพิ่มเติมและความหมายของผล โดยไม่เสนอวิธีเดิมซ้ำ',
   ),
   endedBody: t(
     'You ended the investigation before confirming a fix. Here is what was recorded up to that point.',
@@ -300,8 +300,8 @@ export const messages = {
   ),
   approach: t('Rules lead. AI assists.', 'กฎเป็นหลัก AI ช่วยเสริม'),
   approachBody: t(
-    'A structured engine owns every diagnostic path, cause update, and approved fix. Optional AI can interpret descriptions into known problem categories. It cannot invent procedures, change evidence, or make changes to your computer.',
-    'เอนจินที่มีกฎกำกับทุกเส้นทาง สาเหตุ และวิธีแก้ AI เสริมช่วยจับคู่คำอธิบายกับหมวดปัญหาที่มี ไม่สามารถสร้างขั้นตอน เปลี่ยนข้อมูลตรวจ หรือแก้ค่าคอมพิวเตอร์',
+    'A structured engine owns diagnostic paths, cause updates, and built-in follow-ups. Optional AI can interpret descriptions and prioritize eligible follow-ups when you request a review. It cannot invent procedures, change evidence, or make changes to your computer.',
+    'เอนจินที่มีกฎกำกับเส้นทาง สาเหตุ และการตรวจต่อในระบบ AI เสริมช่วยตีความคำอธิบายและจัดลำดับการตรวจที่เข้าเกณฑ์เมื่อคุณขอทบทวน ไม่สามารถสร้างขั้นตอน เปลี่ยนข้อมูลตรวจ หรือแก้ค่าคอมพิวเตอร์',
   ),
   research: t('Measured with real feedback', 'วัดด้วยความคิดเห็นจริง'),
   researchBody: t(
@@ -314,8 +314,8 @@ export const messages = {
     'V1 ครอบคลุม 15 ปัญหาทั่วไปของ Windows 10 และ 11 ไม่สแกนฮาร์ดแวร์ ควบคุมเครื่องจากระยะไกล หรือซ่อมแบบทำลายข้อมูล บางกรณีต้องใช้ฝ่ายสนับสนุนหรือช่าง การสนับสนุน Windows 10 ขึ้นกับวงจรผลิตภัณฑ์ รุ่น และแผนสนับสนุนของ Microsoft',
   ),
   textService: t(
-    'Your description is sent to the FixFlow server for matching. If the operator has enabled AI, it is also processed by the configured AI provider. Diagnostic button answers stay in this tab.',
-    'คำอธิบายส่งไปเซิร์ฟเวอร์ FixFlow เพื่อจับคู่ หากผู้ดูแลเปิด AI ผู้ให้บริการ AI จะประมวลผลด้วย คำตอบจากปุ่มการตรวจอยู่ในแท็บนี้',
+    'Your description is sent to the FixFlow server for matching and, if enabled, the AI provider. Diagnostic answers stay in this tab unless you choose to review next checks; that review sends selected answers, results, and only the extra detail you enter there. Earlier notes and free-text answers are excluded from that review.',
+    'คำอธิบายส่งไปเซิร์ฟเวอร์ FixFlow เพื่อจับคู่ และผู้ให้บริการ AI หากเปิดใช้ คำตอบการตรวจอยู่ในแท็บนี้เว้นแต่คุณเลือกทบทวนการตรวจต่อ ซึ่งจะส่งตัวเลือก ผล และเฉพาะข้อมูลเสริมที่กรอกตรงนั้น ไม่ส่งบันทึกและคำตอบข้อความเดิมในการทบทวน',
   ),
 };
 export const howSteps = [
